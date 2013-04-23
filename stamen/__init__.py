@@ -8,8 +8,8 @@ import hashlib
 
 from wsgiref.headers import Headers
 
-from .Core import TheTileLeftANote
-from .Caches import Disk
+from TileStache.Core import TheTileLeftANote
+from TileStache.Caches import Disk
 
 class SparseCache(Disk):
     """ Disk cache which 404s "empty" tiles.
@@ -54,14 +54,16 @@ class LanternCache(Disk):
             m.update(body)
 
             md5sum = m.hexdigest()
-
+            
+            headers = Headers([('Access-Control-Expose-Headers', 'X-Land-Or-Sea')])
+            headers.setdefault('X-Land-Or-Sea', '0')
+            
             if md5sum == self.land_md5:
-                raise TheTileLeftANote(content=body, headers=Headers([('X-Land-Or-Sea', 1)]))
+                headers['X-Land-Or-Sea'] = '1'
             elif md5sum == self.sea_md5:
-                raise TheTileLeftANote(content=body, headers=Headers([('X-Land-Or-Sea', 2)]))
-            else:
-                raise TheTileLeftANote(content=body, headers=Headers([('X-Land-Or-Sea', 0)]))
+                headers['X-Land-Or-Sea'] = '2'
 
+            raise TheTileLeftANote(content=body, headers=headers)
 
     def read(self, layer, coord, format):
         body = Disk.read(self, layer, coord, format)
