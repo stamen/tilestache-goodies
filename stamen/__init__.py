@@ -1,4 +1,4 @@
-""" Additional TileStache caches.
+""" Additional TileStache cache providers.
 """
 
 import os
@@ -38,37 +38,57 @@ class SparseCache(Disk):
         return Disk.read(self, layer, coord, format)
 
 
+class LayerStub:
+    """ A Layer-like substance with enough depth for Disk.read()
+    """
+    def __init__(self, name):
+        self.name = name
+
+
+    def name(self):
+        return self.name
+
+
 class LanternCache(Disk):
     """ Disk cache which appends metadata about the content of a tile.
     """
-    def __init__(self, land='', sea='', **kwargs):
+    def __init__(self, land='', sea='', second=None, **kwargs):
         self.land_md5 = land
         self.sea_md5 = sea
+        self.second = LayerStub(second)
 
         return Disk.__init__(self, **kwargs)
 
 
-    def signal_land_or_sea(self, body):
+    def md5sum(self, body):
         if body:
             m = hashlib.md5()
             m.update(body)
 
-            md5sum = m.hexdigest()
+            return m.hexdigest()
+
+
+    def signal_land_or_sea(self, body, layer, coord, format):
+        if body:
+            md5sum = self.md5sum(body)
+            second_md5sum = self.md5sum(Disk.read(self, self.second, coord, format))
             
             headers = Headers([('Access-Control-Expose-Headers', 'X-Land-Or-Sea')])
             headers.setdefault('X-Land-Or-Sea', '0')
             
-            if md5sum == self.land_md5:
-                headers['X-Land-Or-Sea'] = '1'
-            elif md5sum == self.sea_md5:
-                headers['X-Land-Or-Sea'] = '2'
+            if second_md5sum is None or md5sum == second_md5sum:
+                if md5sum == self.land_md5:
+                    headers['X-Land-Or-Sea'] = '1'
+                elif md5sum == self.sea_md5:
+                    headers['X-Land-Or-Sea'] = '2'
 
             raise TheTileLeftANote(content=body, headers=headers)
+
 
     def read(self, layer, coord, format):
         body = Disk.read(self, layer, coord, format)
 
-        self.signal_land_or_sea(body)
+        self.signal_land_or_sea(body, layer, coord, format)
 
         # we should never get here
         return body
@@ -77,4 +97,4 @@ class LanternCache(Disk):
     def save(self, body, layer, coord, format):
         Disk.save(self, body, layer, coord, format)
 
-        self.signal_land_or_sea(body)
+        self.signal_land_or_sea(body, layer, coord, format)
