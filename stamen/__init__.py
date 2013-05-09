@@ -42,11 +42,11 @@ class LayerStub:
     """ A Layer-like substance with enough depth for Disk.read()
     """
     def __init__(self, name):
-        self.name = name
+        self._name = name
 
 
     def name(self):
-        return self.name
+        return self._name
 
 
 class LanternCache(Disk):
