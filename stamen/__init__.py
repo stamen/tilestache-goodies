@@ -42,6 +42,7 @@ class LayerStub:
     """ A Layer-like substance with enough depth for Disk.read()
     """
     def __init__(self, name):
+        self.cache_lifespan = None
         self._name = name
 
 
