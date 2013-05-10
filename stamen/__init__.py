@@ -77,7 +77,7 @@ class LanternCache(Disk):
             headers = Headers([('Access-Control-Expose-Headers', 'X-Land-Or-Sea')])
             headers.setdefault('X-Land-Or-Sea', '0')
             
-            if second_md5sum is None or md5sum == second_md5sum:
+            if second_md5sum and md5sum == second_md5sum:
                 if md5sum == self.land_md5:
                     headers['X-Land-Or-Sea'] = '1'
                 elif md5sum == self.sea_md5:
